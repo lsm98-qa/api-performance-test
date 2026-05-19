@@ -1,3 +1,4 @@
+import pytest
 import requests
  
 URL = "https://api-dashboard.elice.io/student/8906962/lecture"
@@ -30,61 +31,56 @@ VALID_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOjg5MDY5NjIsIm5vbmNl
 EXPIRED_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOjEyMzQ1Njc4LCJub25jZSI6ImV4cGlyZWROb25jZSIsImlhdCI6MTYwMDAwMDAwMCwiaXNzIjoiZWxpY2UtYWNjb3VudC1hcGkifQ.invalidsignature"
  
  
-def send_request(headers: dict) -> requests.Response:
+# ── Fixtures ──────────────────────────────────────────────────────────────────
+ 
+@pytest.fixture
+def valid_headers():
+    """유효한 토큰이 포함된 헤더"""
+    return {**BASE_HEADERS, "authorization": f"Bearer {VALID_TOKEN}"}
+ 
+ 
+@pytest.fixture
+def no_auth_headers():
+    """authorization 헤더가 없는 헤더"""
+    return BASE_HEADERS
+ 
+ 
+@pytest.fixture
+def expired_headers():
+    """만료된 토큰이 포함된 헤더"""
+    return {**BASE_HEADERS, "authorization": f"Bearer {EXPIRED_TOKEN}"}
+ 
+ 
+# ── Helper ────────────────────────────────────────────────────────────────────
+ 
+def get_student_lecture(headers: dict) -> requests.Response:
     return requests.get(URL, headers=headers, params=PARAMS, timeout=10)
  
  
-def verify(test_name: str, response: requests.Response, expected_status: int):
-    print(f"\n{'='*50}")
-    print(f"테스트: {test_name}")
-    print(f"Status Code : {response.status_code}")
+# ── Tests ─────────────────────────────────────────────────────────────────────
  
-    assert response.status_code == expected_status, (
-        f"기대값 {expected_status} 이지만 실제값은 {response.status_code} 입니다."
-    )
+class TestStudentLectureApi:
  
-    print(f"✅ 검증 성공: {expected_status} 확인")
+    def test_유효한_토큰으로_요청시_200을_반환한다(self, valid_headers):
+        # Given: 유효한 토큰이 포함된 헤더
+        # When: 학습자 강의 목록 API를 호출한다
+        response = get_student_lecture(valid_headers)
  
+        # Then: 200 OK를 반환한다
+        assert response.status_code == 200
  
-def run_tests():
-    test_cases = [
-        {
-            "name": "유효한 토큰으로 GET 요청",
-            "headers": {**BASE_HEADERS, "authorization": f"Bearer {VALID_TOKEN}"},
-            "expected": 200,
-        },
-        {
-            "name": "토큰 없이 GET 요청",
-            "headers": BASE_HEADERS,
-            "expected": 403,
-        },
-        {
-            "name": "만료된 토큰으로 GET 요청",
-            "headers": {**BASE_HEADERS, "authorization": f"Bearer {EXPIRED_TOKEN}"},
-            "expected": 403,
-        },
-    ]
+    def test_토큰_없이_요청시_403을_반환한다(self, no_auth_headers):
+        # Given: authorization 헤더가 없는 헤더
+        # When: 학습자 강의 목록 API를 호출한다
+        response = get_student_lecture(no_auth_headers)
  
-    results = {"pass": 0, "fail": 0}
+        # Then: 403 Forbidden을 반환한다
+        assert response.status_code == 403
  
-    for case in test_cases:
-        try:
-            response = send_request(case["headers"])
-            verify(case["name"], response, case["expected"])
-            results["pass"] += 1
-        except AssertionError as e:
-            print(f"❌ 검증 실패: {e}")
-            results["fail"] += 1
-        except requests.exceptions.ConnectionError as e:
-            print(f"❌ 연결 오류: {e}")
-            results["fail"] += 1
-        except requests.exceptions.Timeout:
-            print(f"❌ 요청 시간 초과")
-            results["fail"] += 1
+    def test_만료된_토큰으로_요청시_403을_반환한다(self, expired_headers):
+        # Given: 만료된 토큰이 포함된 헤더
+        # When: 학습자 강의 목록 API를 호출한다
+        response = get_student_lecture(expired_headers)
  
-    print(f"\n{'='*50}")
-    print(f"테스트 결과: {results['pass']}개 성공 / {results['fail']}개 실패")
- 
- 
-if __name__ == "__main__":
-    run_tests()
+        # Then: 403 Forbidden을 반환한다
+        assert response.status_code == 403
