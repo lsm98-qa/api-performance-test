@@ -1,1 +1,15 @@
+# 민감 정보 파일 제외
 .env
+
+# Python 캐시 파일 제외
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 가상환경 폴더 제외
+.venv/
+venv/
+
+# 테스트 리포트 결과물 제외
+reports/*
+!reports/.gitkeep
