@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-Plaintext
-=======
 # 민감 정보 파일 제외
->>>>>>> origin/develop
 .env
 
 # Python 캐시 파일 제외

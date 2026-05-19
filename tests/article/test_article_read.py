@@ -1,21 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
-import requests
-# pytest tests/article/test_article_read.py -v 
+# pytest tests/article/test_article_read.py -v
+
 # ===== 환경 설정 =====
-BASE_URL = "https://api-rest.elice.io"
-VALID_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOjg5MDczODcsIm5vbmNlIjoiOWd5bW9CYWJja0NxZU13bSIsImlhdCI6MTc3NTIxNzQwMiwiaXNzIjoiZWxpY2UtYWNjb3VudC1hcGkifQ.RqB3zVgu_5MyTkhrig5S04GW6HR-eJxDrc7O2EDH9h4"
-ORG = "qatrack"
 VALID_ARTICLE_ID = 75044    # [코치]이상엽 작성 게시글
-
-HEADERS_WITH_TOKEN = {
-    "Authorization": f"Bearer {VALID_TOKEN}",
-    "x-elice-org-name-short": ORG,
-}
-
-HEADERS_NO_TOKEN = {
-    "x-elice-org-name-short": ORG,
-}
+ORG = "qatrack"
 
 
 # ===================================================
@@ -24,18 +13,22 @@ HEADERS_NO_TOKEN = {
 
 class TestArticleReadPositive:
 
-    def test_유효한_토큰으로_게시글_단건_조회(self):
+    def test_article_read_positive(self, learner_rest_client):
         """
         [요청 조건] 유효한 토큰 + 유효한 board_article_id
         [예상 결과] 200 OK, 게시글 상세 정보 반환
         [실제 결과] 200 OK, board_article 데이터 정상 반환
         """
-        response = requests.get(
-            f"{BASE_URL}/org/{ORG}/board/article/get/",
-            headers=HEADERS_WITH_TOKEN,
-            params={"board_article_id": VALID_ARTICLE_ID},
+        # Given: 유효한 학습자 토큰과 유효한 board_article_id가 있을 때
+        params = {"board_article_id": VALID_ARTICLE_ID}
+
+        # When: 게시글 단건 조회 API 호출
+        response = learner_rest_client.get(
+            f"/org/{ORG}/board/article/get/",
+            params=params,
         )
 
+        # Then: 200 OK와 게시글 상세 정보가 반환되어야 한다
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
@@ -54,18 +47,22 @@ class TestArticleReadPositive:
 
 class TestArticleReadNegative:
 
-    def test_토큰_없이_GET_요청(self):
+    def test_article_read_without_token(self, learner_rest_client):
         """
         [요청 조건] 토큰 없이 GET 요청
         [예상 결과] 401 Unauthorized, 인증 에러 반환
         [실제 결과] 403 Forbidden (신원은 확인됐지만 접근 거부)
         """
-        response = requests.get(
-            f"{BASE_URL}/org/{ORG}/board/article/get/",
-            headers=HEADERS_NO_TOKEN,
-            params={"board_article_id": VALID_ARTICLE_ID},
+        # Given: 토큰이 없는 상태일 때
+        params = {"board_article_id": VALID_ARTICLE_ID}
+
+        # When: 토큰 없이 게시글 단건 조회 API 호출
+        response = learner_rest_client.get_no_token(
+            f"/org/{ORG}/board/article/get/",
+            params=params,
         )
 
+        # Then: 인증 에러가 반환되어야 한다
         # 이 서버는 HTTP 200 + Body에 실제 에러코드 반환하는 방식
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
@@ -78,17 +75,20 @@ class TestArticleReadNegative:
             f"에러 코드 불일치: {data}"
         )
 
-    def test_board_article_id_누락(self):
+    def test_article_read_missing_article_id(self, learner_rest_client):
         """
         [요청 조건] board_article_id 누락
         [예상 결과] 400 Bad Request, 필수값 누락 에러 반환
         [실제 결과] HTTP 200 / Body status_code: 400, invalid_parameter (board_article_id required)
         """
-        response = requests.get(
-            f"{BASE_URL}/org/{ORG}/board/article/get/",
-            headers=HEADERS_WITH_TOKEN,
+        # Given: board_article_id가 없는 상태일 때
+
+        # When: board_article_id 없이 게시글 단건 조회 API 호출
+        response = learner_rest_client.get(
+            f"/org/{ORG}/board/article/get/",
         )
 
+        # Then: 필수값 누락 에러가 반환되어야 한다
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
@@ -103,18 +103,22 @@ class TestArticleReadNegative:
             f"board_article_id required 에러 미확인: {data}"
         )
 
-    def test_board_article_id에_문자열_전달(self):
+    def test_article_read_invalid_article_id_type(self, learner_rest_client):
         """
         [요청 조건] board_article_id에 문자열(abc) 전달
         [예상 결과] 400 Bad Request, 타입 에러 반환
         [실제 결과] HTTP 200 / Body status_code: 400, invalid_parameter (board_article_id required)
         """
-        response = requests.get(
-            f"{BASE_URL}/org/{ORG}/board/article/get/",
-            headers=HEADERS_WITH_TOKEN,
-            params={"board_article_id": "abc"},
+        # Given: board_article_id에 잘못된 타입(문자열)이 있을 때
+        params = {"board_article_id": "abc"}
+
+        # When: 잘못된 타입의 board_article_id로 게시글 단건 조회 API 호출
+        response = learner_rest_client.get(
+            f"/org/{ORG}/board/article/get/",
+            params=params,
         )
 
+        # Then: 타입 에러가 반환되어야 한다
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
