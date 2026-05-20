@@ -2,7 +2,7 @@
 import pytest
 import os
 from dotenv import load_dotenv
-# pytest tests/schedule/test_lectureroom.py -v
+# pytest tests/schedule/test_a_lectureroom.py -v
 
 load_dotenv()
 
