@@ -3,7 +3,7 @@ import pytest
 import os
 import requests
 from dotenv import load_dotenv
-# pytest tests/article/test_article.py -v
+# pytest tests/article/test_a_article.py -v
 
 load_dotenv()
 

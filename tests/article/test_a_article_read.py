@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
-# pytest tests/article/test_article_read.py -v
+# pytest tests/article/test_a_article_read.py -v
 
 # ===== 환경 설정 =====
 VALID_ARTICLE_ID = 75044    # [코치]이상엽 작성 게시글
