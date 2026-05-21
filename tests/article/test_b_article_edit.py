@@ -11,13 +11,13 @@ load_dotenv()
 ORG = "qaproject"
 EDUCATOR_CLASSROOM_ID = os.getenv("EDUCATOR_CLASSROOM_ID")
 LEARNER_CLASSROOM_ID = os.getenv("LEARNER_CLASSROOM_ID")
-OTHER_ARTICLE_ID = 75252  # 다른 사람이 작성한 게시글
+OTHER_ARTICLE_ID = 75252  # 다른 사람이 작성한 게시글 (정은하)
 
 
-# ===== Fixture: 테스트용 게시글 자동 생성 =====
+# ===== Fixture: 테스트용 게시글 자동 생성 및 삭제 =====
 @pytest.fixture
 def board_article_id(educator_rest_client):
-    """테스트용 게시글을 생성하고 board_article_id 반환"""
+    """테스트용 게시글을 생성하고 테스트 후 자동 삭제"""
     data = {
         "classroom_id": EDUCATOR_CLASSROOM_ID,
         "title": "수정 테스트용 게시글",
@@ -29,7 +29,15 @@ def board_article_id(educator_rest_client):
         data=data,
     )
     assert response.status_code == 200, f"게시글 생성 실패: {response.text}"
-    return response.json().get("board_article_id")
+    article_id = response.json().get("board_article_id")
+
+    yield article_id  # 테스트 실행
+
+    # 테스트 후 자동 삭제
+    educator_rest_client.post_form(
+        f"/org/{ORG}/board/article/delete/",
+        data={"board_article_id": article_id},
+    )
 
 
 # ===================================================
@@ -68,6 +76,12 @@ class TestBoardArticleEditPositive:
         )
         assert "board_article_id" in result, (
             f"board_article_id 없음: {result}"
+        )
+
+        # 테스트 후 생성된 게시글 삭제
+        educator_rest_client.post_form(
+            f"/org/{ORG}/board/article/delete/",
+            data={"board_article_id": result.get("board_article_id")},
         )
 
     def test_board_article_update_positive(self, educator_rest_client, board_article_id):
