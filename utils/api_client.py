@@ -44,9 +44,9 @@ class APIClient:
         url = f"{self.base_url}{endpoint}"
         return requests.patch(url, headers=self.headers, json=data, timeout=10)
 
-    def delete(self, endpoint: str) -> requests.Response:
+    def delete(self, endpoint: str, data: dict = None) -> requests.Response:
         url = f"{self.base_url}{endpoint}"
-        return requests.delete(url, headers=self.headers, timeout=10)
+        return requests.delete(url, headers=self.headers, json=data, timeout=10)
 
     def get_no_token(self, endpoint: str, params: dict = None) -> requests.Response:
         """토큰 없이 요청 (Negative 테스트용)"""
