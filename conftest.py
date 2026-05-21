@@ -77,3 +77,14 @@ def educator_schedule_id(educator_client):
     target = next((s for s in schedules if s.get("summary") == "테스트용 수업"), None)
     assert target is not None, "생성된 스케줄을 찾을 수 없음"
     return target["id"]
+
+# ===========================
+# 교육자 API 클라이언트 (REST)
+# ===========================
+@pytest.fixture
+def educator_rest_client():
+    """교육자 토큰으로 API 호출하는 클라이언트 (BASE_URL_REST)"""
+    return APIClient(
+        token=os.getenv("EDUCATOR_TOKEN"),
+        base_url=os.getenv("BASE_URL_REST")
+    )
