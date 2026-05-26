@@ -122,3 +122,89 @@ output2 = BASE_DIR / "processed" / "day7_bar_100users.png"
 plt.savefig(output2, dpi=150, bbox_inches='tight')
 plt.close()
 print(f"✅ 막대그래프 저장 완료: {output2}")
+
+
+# ===========================
+# 그래프 3 — Max Latency 히트맵
+# ===========================
+fig3, axes3 = plt.subplots(1, 2, figsize=(16, 6))
+fig3.suptitle("API × 유저 수별 Max Latency 히트맵 (ms)", fontsize=14, fontweight='bold')
+
+for i, team in enumerate(["team2", "team3"]):
+    ax = axes3[i]
+    team_data = df[df["team"] == team]
+
+    pivot = team_data.pivot_table(
+        index="api",
+        columns="users",
+        values="max_latency_ms",
+        aggfunc="mean"
+    )
+    pivot = pivot.reindex([a for a in APIS if a in pivot.index])
+    pivot = pivot.reindex(columns=USERS)
+
+    im = ax.imshow(pivot.values, cmap="YlOrRd", aspect="auto")
+    plt.colorbar(im, ax=ax, label="응답시간 (ms)")
+
+    ax.set_xticks(range(len(USERS)))
+    ax.set_xticklabels([f"{u}명" for u in USERS])
+    ax.set_yticks(range(len(pivot.index)))
+    ax.set_yticklabels(pivot.index)
+    ax.set_title(f"{team}", fontweight='bold', fontsize=12)
+
+    for row_idx in range(len(pivot.index)):
+        for col_idx in range(len(USERS)):
+            val = pivot.values[row_idx, col_idx]
+            if not np.isnan(val):
+                ax.text(col_idx, row_idx, f"{int(val)}",
+                       ha='center', va='center', fontsize=9,
+                       color='black' if val < 400 else 'white', fontweight='bold')
+
+plt.tight_layout()
+output3 = BASE_DIR / "processed" / "day7_heatmap_max.png"
+plt.savefig(output3, dpi=150, bbox_inches='tight')
+plt.close()
+print(f"✅ Max 히트맵 저장 완료: {output3}")
+
+
+# ===========================
+# 그래프 4 — Min Latency 히트맵
+# ===========================
+fig4, axes4 = plt.subplots(1, 2, figsize=(16, 6))
+fig4.suptitle("API × 유저 수별 Min Latency 히트맵 (ms)", fontsize=14, fontweight='bold')
+
+for i, team in enumerate(["team2", "team3"]):
+    ax = axes4[i]
+    team_data = df[df["team"] == team]
+
+    pivot = team_data.pivot_table(
+        index="api",
+        columns="users",
+        values="min_latency_ms",
+        aggfunc="mean"
+    )
+    pivot = pivot.reindex([a for a in APIS if a in pivot.index])
+    pivot = pivot.reindex(columns=USERS)
+
+    im = ax.imshow(pivot.values, cmap="YlOrRd", aspect="auto")
+    plt.colorbar(im, ax=ax, label="응답시간 (ms)")
+
+    ax.set_xticks(range(len(USERS)))
+    ax.set_xticklabels([f"{u}명" for u in USERS])
+    ax.set_yticks(range(len(pivot.index)))
+    ax.set_yticklabels(pivot.index)
+    ax.set_title(f"{team}", fontweight='bold', fontsize=12)
+
+    for row_idx in range(len(pivot.index)):
+        for col_idx in range(len(USERS)):
+            val = pivot.values[row_idx, col_idx]
+            if not np.isnan(val):
+                ax.text(col_idx, row_idx, f"{int(val)}",
+                       ha='center', va='center', fontsize=9,
+                       color='black' if val < 200 else 'white', fontweight='bold')
+
+plt.tight_layout()
+output4 = BASE_DIR / "processed" / "day7_heatmap_min.png"
+plt.savefig(output4, dpi=150, bbox_inches='tight')
+plt.close()
+print(f"✅ Min 히트맵 저장 완료: {output4}")
