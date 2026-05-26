@@ -22,6 +22,9 @@ team3_files = {
 
 def normalize_api(label: str) -> str:
     label = str(label).strip()
+    # Thread Group 접두사 제거 추가
+    if label.startswith("Thread Group:"):
+        label = label.replace("Thread Group:", "").strip()
     mapping = {
         "Auth": "Auth",
         "Auth - Login": "Auth",
