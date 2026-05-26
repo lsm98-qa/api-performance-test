@@ -40,6 +40,7 @@ APIS = df["api"].unique().tolist()
 TEAMS = ["team2", "team3"]
 COLORS = {"team2": "#4C72B0", "team3": "#DD8452"}
 MARKERS = {"team2": "o", "team3": "s"}
+Y_MAX = 600
 
 # ===========================
 # 그래프 1 — API별 팀 비교 (서브플롯)
@@ -68,6 +69,7 @@ for idx, api in enumerate(APIS):
                 markersize=7,
             )
     ax.axhline(y=1000, color='red', linestyle='--', alpha=0.6, linewidth=1, label='기준 (1000ms)')
+    ax.set_ylim(0, Y_MAX)
     ax.set_title(api, fontweight='bold', fontsize=11)
     ax.set_xlabel("동시 사용자 수 (명)")
     ax.set_ylabel("평균 응답시간 (ms)")
@@ -108,6 +110,7 @@ for i, team in enumerate(TEAMS):
                 markersize=6,
             )
     ax.axhline(y=1000, color='red', linestyle='--', alpha=0.6, linewidth=1.5, label='기준 (1000ms)')
+    ax.set_ylim(0, Y_MAX)
     ax.set_title(f"{team} - API별 평균 응답시간", fontweight='bold')
     ax.set_xlabel("동시 사용자 수 (명)")
     ax.set_ylabel("평균 응답시간 (ms)")

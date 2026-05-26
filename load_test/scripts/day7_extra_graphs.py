@@ -113,9 +113,9 @@ ax2.set_xticks(x + width / 2)
 ax2.set_xticklabels(APIS, fontsize=11)
 ax2.set_ylabel("평균 응답시간 (ms)")
 ax2.set_xlabel("API")
+ax2.set_ylim(0, 600)
 ax2.legend(fontsize=10)
 ax2.grid(True, alpha=0.3, axis='y')
-ax2.set_ylim(0, max(df_100["avg_latency_ms"].max() * 1.2, 1100))
 
 plt.tight_layout()
 output2 = BASE_DIR / "processed" / "day7_bar_100users.png"
