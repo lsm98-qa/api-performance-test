@@ -1,7 +1,7 @@
 import os
-import requests
 
 import pytest
+import requests
 from dotenv import load_dotenv
 
 
@@ -20,36 +20,55 @@ ORIGINAL_COURSE_ID = int(os.getenv("ORIGINAL_COURSE_ID"))
 @pytest.fixture
 def qaproject_educator_client(educator_client):
     """qaproject 기관 헤더를 사용하는 교육자 클라이언트를 반환한다."""
-    educator_client.headers["x-elice-org-name-short"] = ORG_NAME_SHORT
+    educator_client.headers = {
+        **educator_client.headers,
+        "x-elice-org-name-short": ORG_NAME_SHORT,
+    }
     return educator_client
 
 
 # ===== 헬퍼 =====
-def course_bulk_endpoint():
-    """과목 일괄 추가 경로를 생성한다."""
-    return f"/v2/classroom/{CLASSROOM_ID}/course/bulk"
+def course_bulk_endpoint(classroom_id=CLASSROOM_ID):
+    """과목 일괄 추가 API 경로를 만든다."""
+    return f"/v2/classroom/{classroom_id}/course/bulk"
 
 
-def course_bulk_body():
-    """과목 일괄 추가 요청 body를 생성한다."""
-    return {"original_course_ids": [ORIGINAL_COURSE_ID]}
+def course_bulk_body(original_course_id=ORIGINAL_COURSE_ID):
+    """원본 과목 ID를 과목 일괄 추가 요청 body 형식으로 만든다."""
+    return {"original_course_ids": [original_course_id]}
 
 
-def learner_token_headers(qaproject_educator_client):
-    """학습자 토큰으로 요청하기 위한 헤더를 생성한다."""
+def auth_headers(client, token):
+    """기존 클라이언트 헤더에 원하는 토큰을 덮어쓴 인증 헤더를 만든다."""
     return {
-        **qaproject_educator_client.headers,
-        "Authorization": f"Bearer {os.getenv('LEARNER_TOKEN')}",
+        **client.headers,
+        "Authorization": f"Bearer {token}",
     }
 
 
 def post_course_bulk_with_learner_token(qaproject_educator_client):
-    """학습자 토큰으로 과목 일괄 추가 API를 호출한다."""
+    """학습자 토큰으로 과목 일괄 추가 API를 직접 호출한다."""
     return requests.post(
         f"{qaproject_educator_client.base_url}{course_bulk_endpoint()}",
-        headers=learner_token_headers(qaproject_educator_client),
+        headers=auth_headers(qaproject_educator_client, os.getenv("LEARNER_TOKEN")),
         json=course_bulk_body(),
         timeout=TIMEOUT,
+    )
+
+
+def assert_status(response, expected_status):
+    """응답 상태코드가 예상값과 다르면 응답 본문까지 함께 보여준다."""
+    assert response.status_code == expected_status, (
+        f"expected: {expected_status}, actual: {response.status_code}\n"
+        f"{response.text}"
+    )
+
+
+def assert_error_code(response, expected_code):
+    """응답 JSON의 code 값이 예상 에러 코드와 같은지 확인한다."""
+    data = response.json()
+    assert data.get("code") == expected_code, (
+        f"expected error code: {expected_code}, response: {data}"
     )
 
 
@@ -60,22 +79,14 @@ def post_course_bulk_with_learner_token(qaproject_educator_client):
 class TestCourseBulkPositive:
 
     def test_post_course_bulk_with_educator_token(self, qaproject_educator_client):
-        """
-        [요청 조건] 교육자 토큰 + 유효한 original_course_ids
-        [예상 결과] 200 정상 응답, 과목 정상 추가
-        """
-        # Given: 교육자 토큰과 유효한 과목 추가 요청 body가 있을 때
-
-        # When: 과목 일괄 추가 API를 호출한다
+        # When: 교육자 토큰으로 원본 과목을 현재 강의실에 일괄 추가한다.
         response = qaproject_educator_client.post(
             course_bulk_endpoint(),
             data=course_bulk_body(),
         )
 
-        # Then: 200 정상 응답이 반환되어야 한다
-        assert response.status_code == 200, (
-            f"예상: 200, 실제: {response.status_code}\n{response.text}"
-        )
+        # Then: 과목 추가 요청이 정상 처리되어야 한다.
+        assert_status(response, 200)
 
 
 # ===================================================
@@ -88,22 +99,14 @@ class TestCourseBulkNegative:
         self,
         qaproject_educator_client,
     ):
-        """
-        [요청 조건] 교육자 토큰 + original_course_ids 누락
-        [예상 결과] 422 처리할 수 없는 요청, 필수값 누락 에러 반환
-        """
-        # Given: original_course_ids가 없는 빈 body가 있을 때
-
-        # When: 필수값 없이 과목 일괄 추가 API를 호출한다
+        # When: 필수값인 original_course_ids 없이 과목 일괄 추가를 요청한다.
         response = qaproject_educator_client.post(
             course_bulk_endpoint(),
             data={},
         )
 
-        # Then: 422 처리할 수 없는 요청이 반환되어야 한다
-        assert response.status_code == 422, (
-            f"예상: 422, 실제: {response.status_code}\n{response.text}"
-        )
+        # Then: 필수값 누락으로 요청이 거부되어야 한다.
+        assert_status(response, 422)
 
 
 # ===================================================
@@ -113,20 +116,9 @@ class TestCourseBulkNegative:
 class TestCourseBulkBoundary:
 
     def test_post_course_bulk_with_learner_token(self, qaproject_educator_client):
-        """
-        [요청 조건] 학습자 토큰으로 과목 추가 시도
-        [예상 결과] 403 권한 없음, has_no_permission 반환
-        """
-        # Given: 학습자 토큰과 유효한 과목 추가 요청 body가 있을 때
-
-        # When: 학습자 토큰으로 과목 일괄 추가 API를 호출한다
+        # When: 학습자 토큰으로 교육자 전용 과목 추가 API를 호출한다.
         response = post_course_bulk_with_learner_token(qaproject_educator_client)
 
-        # Then: 권한 없음 에러가 반환되어야 한다
-        assert response.status_code == 403, (
-            f"예상: 403, 실제: {response.status_code}\n{response.text}"
-        )
-        data = response.json()
-        assert data.get("code") == "has_no_permission", (
-            f"에러 코드 불일치: {data}"
-        )
+        # Then: 권한 없음 에러가 반환되어야 한다.
+        assert_status(response, 403)
+        assert_error_code(response, "has_no_permission")
