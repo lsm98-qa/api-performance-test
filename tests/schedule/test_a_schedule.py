@@ -9,8 +9,8 @@ load_dotenv()
 # ===== 환경 설정 =====
 PARAMS = {
     "classroom_id": os.getenv("CLASSROOM_ID"),
-    "dt_start_ge": "2026-04-16T15:00:00.000Z",
-    "dt_start_le": "2026-06-14T14:59:59.999Z",
+    "dt_start_ge": os.getenv("SCHEDULE_DT_START_GE", "2026-04-16T15:00:00.000Z"),
+    "dt_start_le": os.getenv("SCHEDULE_DT_START_LE", "2026-06-14T14:59:59.999Z"),
     "count": 40,
 }
 
@@ -39,6 +39,16 @@ class TestSchedulePositive:
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert isinstance(data, list), (
+            f"응답이 리스트 형태가 아님: {data}"
+        )
+        if len(data) > 0:
+            schedule = data[0]
+            assert "id" in schedule, f"id 필드 없음: {schedule}"
+            assert "summary" in schedule, f"summary 필드 없음: {schedule}"
+            assert "dt_start" in schedule, f"dt_start 필드 없음: {schedule}"
+            assert "dt_end" in schedule, f"dt_end 필드 없음: {schedule}"
 
 
 # ===================================================
@@ -116,8 +126,8 @@ class TestScheduleBoundary:
         # Given: 학습자 토큰과 수업 일정 생성 데이터가 있을 때
         params = {
             "classroom_id": os.getenv("CLASSROOM_ID"),
-            "dt_start_ge": "2026-06-01T09:00:00.000Z",
-            "dt_start_le": "2026-06-01T10:00:00.000Z",
+            "dt_start_ge": os.getenv("SCHEDULE_DT_START_GE", "2026-06-01T09:00:00.000Z"),
+            "dt_start_le": os.getenv("SCHEDULE_DT_START_LE", "2026-06-01T10:00:00.000Z"),
             "count": 40,
         }
         body = {

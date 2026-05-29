@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 import pytest
 import os
-import requests as req
 from dotenv import load_dotenv
 # pytest tests/article/test_b_article_edit.py -v
 
 load_dotenv()
 
 # ===== 환경 설정 =====
-ORG = "qaproject"
+ORG = os.getenv("EDUCATOR_ORG", "qaproject")
 EDUCATOR_CLASSROOM_ID = os.getenv("EDUCATOR_CLASSROOM_ID")
 LEARNER_CLASSROOM_ID = os.getenv("LEARNER_CLASSROOM_ID")
-OTHER_ARTICLE_ID = 75252  # 다른 사람이 작성한 게시글 (정은하)
+OTHER_ARTICLE_ID = int(os.getenv("EDUCATOR_OTHER_ARTICLE_ID", "75252"))  # 다른 사람이 작성한 게시글 (정은하)
 
 
 # ===== Fixture: 테스트용 게시글 자동 생성 및 삭제 =====
@@ -50,7 +49,7 @@ class TestBoardArticleEditPositive:
         """
         [요청 조건] 교육자 토큰 + 유효한 classroom_id + title + content + is_secret
         [예상 결과] 200 OK, 게시글 정상 생성 및 board_article_id 반환
-        [실제 결과] 200 OK, 게시글 정상 생성 (board_article_id: 75271)
+        [실제 결과] 200 OK, 게시글 정상 생성
         """
         # Given: 교육자 토큰과 유효한 게시글 데이터가 있을 때
         data = {
@@ -88,7 +87,7 @@ class TestBoardArticleEditPositive:
         """
         [요청 조건] 교육자 토큰 + 유효한 board_article_id + classroom_id + 수정할 title + content + is_secret
         [예상 결과] 200 OK, 게시글 정상 수정 및 board_article_id 반환
-        [실제 결과] 200 OK, 게시글 정상 수정 (board_article_id: 75271)
+        [실제 결과] 200 OK, 게시글 정상 수정
         """
         # Given: 교육자 토큰과 수정할 게시글 데이터가 있을 때
         data = {
@@ -148,6 +147,9 @@ class TestBoardArticleEditNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         result = response.json()
+        assert result.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {result}"
+        )
         assert result.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {result}"
         )
@@ -179,6 +181,9 @@ class TestBoardArticleEditNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         result = response.json()
+        assert result.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {result}"
+        )
         assert result.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {result}"
         )
@@ -211,6 +216,9 @@ class TestBoardArticleEditNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         result = response.json()
+        assert result.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {result}"
+        )
         assert result.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {result}"
         )

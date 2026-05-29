@@ -10,6 +10,7 @@ load_dotenv()
 # ===== 환경 설정 =====
 EDUCATOR_CLASSROOM_ID = os.getenv("EDUCATOR_CLASSROOM_ID")
 LEARNER_CLASSROOM_ID = os.getenv("LEARNER_CLASSROOM_ID")
+LEARNER_ORG = os.getenv("ORG", "qatrack")
 
 
 # ===================================================
@@ -36,6 +37,10 @@ class TestScheduleDeletePositive:
         # Then: 200 OK와 스케줄이 정상 삭제되어야 한다
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
+        )
+        data = response.json()
+        assert data == {}, (
+            f"응답 Body가 빈 객체가 아님: {data}"
         )
 
 
@@ -68,6 +73,9 @@ class TestScheduleDeleteNegative:
         assert data.get("code") == "elice_calendar_unexpected_result", (
             f"에러 코드 불일치: {data}"
         )
+        assert data.get("detail", {}).get("resp_json", {}).get("code") == "model_not_found", (
+            f"model_not_found 에러 미확인: {data}"
+        )
 
 
 # ===================================================
@@ -85,7 +93,7 @@ class TestScheduleDeleteBoundary:
         # Given: 다른 기관 헤더로 스케줄 삭제 시도
         headers = {
             **educator_client.headers,
-            "x-elice-org-name-short": "qatrack",
+            "x-elice-org-name-short": LEARNER_ORG,
         }
 
         # When: 다른 기관 org로 스케줄 삭제 API 호출

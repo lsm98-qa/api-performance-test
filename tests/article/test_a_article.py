@@ -1,18 +1,16 @@
 # -*- coding: utf-8 -*-
 import pytest
 import os
-import requests
 from dotenv import load_dotenv
 # pytest tests/article/test_a_article.py -v
 
 load_dotenv()
 
 # ===== 환경 설정 =====
-BASE_URL_REST = os.getenv("BASE_URL_REST", "https://api-rest.elice.io")
 ORG = os.getenv("ORG", "qatrack")
-BOARD_ID = 9565
-MY_ARTICLE_ID = 75085       # 본인이 작성한 게시글
-OTHER_ARTICLE_ID = 69780    # 다른 사람이 작성한 게시글 ([매니저]장은서)
+BOARD_ID = int(os.getenv("BOARD_ID", "9565"))
+MY_ARTICLE_ID = int(os.getenv("MY_ARTICLE_ID", "75085"))        # 본인이 작성한 게시글
+OTHER_ARTICLE_ID = int(os.getenv("OTHER_ARTICLE_ID", "69780"))  # 다른 사람이 작성한 게시글 ([매니저]장은서)
 
 
 # ===================================================
@@ -43,6 +41,11 @@ class TestArticlePositive:
         assert isinstance(data, list), (
             f"응답이 리스트 형태가 아님: {data}"
         )
+        if len(data) > 0:
+            article = data[0]
+            assert "id" in article, f"id 필드 없음: {article}"
+            assert "title" in article, f"title 필드 없음: {article}"
+            assert "user" in article, f"user 필드 없음: {article}"
 
 
 # ===================================================
@@ -181,7 +184,7 @@ class TestArticleNegative:
 
 class TestArticleBoundary:
 
-    def test_article_edit_other_user(self, learner_client):
+    def test_article_edit_other_user(self, learner_rest_client):
         """
         [요청 조건] 학습자 토큰으로 다른 사람 게시글 수정 시도
         [예상 결과] 403 Forbidden, 권한 에러 반환
@@ -189,7 +192,6 @@ class TestArticleBoundary:
                    (본인 글이 아니면 리소스 자체를 찾을 수 없음으로 처리)
         """
         # Given: 학습자 토큰과 다른 사람의 게시글 ID가 있을 때
-        rest_client_url = f"{BASE_URL_REST}/org/{ORG}/board/article/edit/"
         form_data = {
             "board_article_id": OTHER_ARTICLE_ID,
             "board_id": BOARD_ID,
@@ -199,12 +201,8 @@ class TestArticleBoundary:
         }
 
         # When: 다른 사람 게시글 수정 API 호출
-        response = requests.post(
-            rest_client_url,
-            headers={
-                "Authorization": f"Bearer {os.getenv('LEARNER_TOKEN')}",
-                "x-elice-org-name-short": ORG,
-            },
+        response = learner_rest_client.post_form(
+            f"/org/{ORG}/board/article/edit/",
             data=form_data,
         )
 

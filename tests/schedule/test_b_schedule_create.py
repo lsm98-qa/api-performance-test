@@ -9,6 +9,45 @@ load_dotenv()
 # ===== 환경 설정 =====
 EDUCATOR_CLASSROOM_ID = os.getenv("EDUCATOR_CLASSROOM_ID")
 LEARNER_CLASSROOM_ID = os.getenv("LEARNER_CLASSROOM_ID")
+SCHEDULE_DT_START = os.getenv("SCHEDULE_CREATE_DT_START", "2026-06-01T09:00:00.000Z")
+SCHEDULE_DT_END = os.getenv("SCHEDULE_CREATE_DT_END", "2026-06-01T10:00:00.000Z")
+
+
+# ===== Fixture: 테스트용 스케줄 자동 생성 및 삭제 =====
+@pytest.fixture
+def created_schedule_id(educator_client):
+    """Positive 테스트용 스케줄 생성 후 자동 삭제"""
+    body = {
+        "classroom_id": EDUCATOR_CLASSROOM_ID,
+        "summary": "교육자 테스트 수업",
+        "dt_start": SCHEDULE_DT_START,
+        "dt_end": SCHEDULE_DT_END,
+    }
+    response = educator_client.post("/schedule", data=body)
+    assert response.status_code == 200, f"스케줄 생성 실패: {response.text}"
+
+    # 생성된 스케줄 ID 조회
+    list_response = educator_client.get(
+        "/schedule",
+        params={
+            "classroom_id": EDUCATOR_CLASSROOM_ID,
+            "dt_start_ge": SCHEDULE_DT_START[:10] + "T00:00:00.000Z",
+            "dt_start_le": SCHEDULE_DT_START[:10] + "T23:59:59.999Z",
+            "count": 10,
+        }
+    )
+    schedules = list_response.json()
+    target = next((s for s in schedules if s.get("summary") == "교육자 테스트 수업"), None)
+    assert target is not None, "생성된 스케줄을 찾을 수 없음"
+    schedule_id = target["id"]
+
+    yield schedule_id  # 테스트 실행
+
+    # 테스트 후 자동 삭제
+    educator_client.delete(
+        f"/schedule/{schedule_id}",
+        data={"classroom_id": EDUCATOR_CLASSROOM_ID},
+    )
 
 
 # ===================================================
@@ -17,28 +56,17 @@ LEARNER_CLASSROOM_ID = os.getenv("LEARNER_CLASSROOM_ID")
 
 class TestScheduleCreatePositive:
 
-    def test_schedule_create_positive(self, educator_client):
+    def test_schedule_create_positive(self, educator_client, created_schedule_id):
         """
         [테스트 의도] 교육자가 수업 일정 생성 시 유효한 파라미터로 스케줄이 정상 생성되는지 검증
         [요청 조건] 교육자 토큰 + 유효한 classroom_id + summary + dt_start + dt_end
         [예상 결과] 200 OK, 스케줄 정상 생성
         [실제 결과] 200 OK, 스케줄 정상 생성
         """
-        # Given: 교육자 토큰과 유효한 스케줄 데이터가 있을 때
-        body = {
-            "classroom_id": EDUCATOR_CLASSROOM_ID,
-            "summary": "교육자 테스트 수업",
-            "dt_start": "2026-06-01T09:00:00.000Z",
-            "dt_end": "2026-06-01T10:00:00.000Z",
-        }
-
-        # When: 스케줄 생성 API 호출
-        response = educator_client.post("/schedule", data=body)
+        # Given: 교육자 토큰과 유효한 스케줄 데이터가 있을 때 (fixture로 자동 생성)
 
         # Then: 200 OK와 스케줄이 정상 생성되어야 한다
-        assert response.status_code == 200, (
-            f"예상: 200, 실제: {response.status_code}\n{response.text}"
-        )
+        assert created_schedule_id is not None, "스케줄 ID가 반환되지 않음"
 
 
 # ===================================================
@@ -56,8 +84,8 @@ class TestScheduleCreateNegative:
         # Given: summary가 없는 스케줄 데이터가 있을 때
         body = {
             "classroom_id": EDUCATOR_CLASSROOM_ID,
-            "dt_start": "2026-06-01T09:00:00.000Z",
-            "dt_end": "2026-06-01T10:00:00.000Z",
+            "dt_start": SCHEDULE_DT_START,
+            "dt_end": SCHEDULE_DT_END,
         }
 
         # When: summary 없이 스케줄 생성 API 호출
@@ -67,6 +95,11 @@ class TestScheduleCreateNegative:
         assert response.status_code == 422, (
             f"예상: 422, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert any(
+            err.get("loc", [])[-1] == "summary"
+            for err in data.get("detail", [])
+        ), f"summary 누락 에러 미확인: {data}"
 
     def test_schedule_create_missing_dt_start(self, educator_client):
         """
@@ -78,7 +111,7 @@ class TestScheduleCreateNegative:
         body = {
             "classroom_id": EDUCATOR_CLASSROOM_ID,
             "summary": "교육자 테스트 수업",
-            "dt_end": "2026-06-01T10:00:00.000Z",
+            "dt_end": SCHEDULE_DT_END,
         }
 
         # When: dt_start 없이 스케줄 생성 API 호출
@@ -88,6 +121,11 @@ class TestScheduleCreateNegative:
         assert response.status_code == 422, (
             f"예상: 422, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert any(
+            err.get("loc", [])[-1] == "dt_start"
+            for err in data.get("detail", [])
+        ), f"dt_start 누락 에러 미확인: {data}"
 
     def test_schedule_create_missing_dt_end(self, educator_client):
         """
@@ -99,7 +137,7 @@ class TestScheduleCreateNegative:
         body = {
             "classroom_id": EDUCATOR_CLASSROOM_ID,
             "summary": "교육자 테스트 수업",
-            "dt_start": "2026-06-01T09:00:00.000Z",
+            "dt_start": SCHEDULE_DT_START,
         }
 
         # When: dt_end 없이 스케줄 생성 API 호출
@@ -109,6 +147,11 @@ class TestScheduleCreateNegative:
         assert response.status_code == 422, (
             f"예상: 422, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert any(
+            err.get("loc", [])[-1] == "dt_end"
+            for err in data.get("detail", [])
+        ), f"dt_end 누락 에러 미확인: {data}"
 
     def test_schedule_create_missing_classroom_id(self, educator_client):
         """
@@ -119,8 +162,8 @@ class TestScheduleCreateNegative:
         # Given: classroom_id가 없는 스케줄 데이터가 있을 때
         body = {
             "summary": "교육자 테스트 수업",
-            "dt_start": "2026-06-01T09:00:00.000Z",
-            "dt_end": "2026-06-01T10:00:00.000Z",
+            "dt_start": SCHEDULE_DT_START,
+            "dt_end": SCHEDULE_DT_END,
         }
 
         # When: classroom_id 없이 스케줄 생성 API 호출
@@ -130,6 +173,11 @@ class TestScheduleCreateNegative:
         assert response.status_code == 422, (
             f"예상: 422, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert any(
+            err.get("loc", [])[-1] == "classroom_id"
+            for err in data.get("detail", [])
+        ), f"classroom_id 누락 에러 미확인: {data}"
 
     def test_schedule_create_invalid_datetime(self, educator_client):
         """
@@ -141,8 +189,8 @@ class TestScheduleCreateNegative:
         body = {
             "classroom_id": EDUCATOR_CLASSROOM_ID,
             "summary": "교육자 테스트 수업",
-            "dt_start": "2026-06-01T10:00:00.000Z",
-            "dt_end": "2026-06-01T09:00:00.000Z",
+            "dt_start": SCHEDULE_DT_END,   # 의도적으로 역전
+            "dt_end": SCHEDULE_DT_START,
         }
 
         # When: 역전된 시간으로 스케줄 생성 API 호출
@@ -174,8 +222,8 @@ class TestScheduleCreateBoundary:
         body = {
             "classroom_id": LEARNER_CLASSROOM_ID,
             "summary": "테스트 수업 일정",
-            "dt_start": "2026-06-01T09:00:00.000Z",
-            "dt_end": "2026-06-01T10:00:00.000Z",
+            "dt_start": SCHEDULE_DT_START,
+            "dt_end": SCHEDULE_DT_END,
         }
 
         # When: 학습자 토큰으로 스케줄 생성 API 호출
