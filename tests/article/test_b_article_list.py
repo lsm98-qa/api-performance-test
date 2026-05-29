@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # ===== 환경 설정 =====
-ORG = "qaproject"
-BOARD_ID = 10193
+ORG = os.getenv("EDUCATOR_ORG", "qaproject")
+BOARD_ID = int(os.getenv("EDUCATOR_BOARD_ID", "10193"))
 
 
 # ===================================================
@@ -45,6 +45,12 @@ class TestBoardArticleListPositive:
         assert data.get("_result", {}).get("status") == "ok", (
             f"응답 status 불일치: {data}"
         )
+        assert "board_articles" in data, (
+            f"board_articles 필드 없음: {data}"
+        )
+        assert isinstance(data.get("board_article_count"), int), (
+            f"board_article_count 필드 없음: {data}"
+        )
 
 
 # ===================================================
@@ -76,6 +82,9 @@ class TestBoardArticleListNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {data}"
         )
@@ -110,6 +119,9 @@ class TestBoardArticleListNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {data}"
         )
@@ -154,6 +166,9 @@ class TestBoardArticleListBoundary:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 409, (
             f"Body status_code 불일치: {data}"
         )

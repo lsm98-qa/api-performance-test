@@ -8,8 +8,8 @@ load_dotenv()
 
 # ===== 환경 설정 =====
 ORG = os.getenv("ORG", "qatrack")
-VALID_LECTUREROOM_ID = 142899       # [1팀🩶] 강의실 (is_participating_as_student: true)
-INVALID_LECTUREROOM_ID = 143638     # [코치님 강의실] (is_participating_as_student: false)
+VALID_LECTUREROOM_ID = int(os.getenv("VALID_LECTUREROOM_ID", "142899"))       # [1팀🩶] 강의실 (is_participating_as_student: true)
+INVALID_LECTUREROOM_ID = int(os.getenv("INVALID_LECTUREROOM_ID", "143638"))   # [코치님 강의실] (is_participating_as_student: false)
 
 
 # ===================================================
@@ -40,6 +40,16 @@ class TestLectureroomPositive:
         assert data.get("_result", {}).get("status") == "ok", (
             f"응답 status 불일치: {data}"
         )
+        lectureroom = data.get("lectureroom", {})
+        assert lectureroom.get("id") == VALID_LECTUREROOM_ID, (
+            f"lectureroom id 불일치: {data}"
+        )
+        assert lectureroom.get("title") is not None, (
+            f"title 필드 없음: {data}"
+        )
+        assert "is_participating_as_student" in lectureroom, (
+            f"is_participating_as_student 필드 없음: {data}"
+        )
 
 
 # ===================================================
@@ -69,6 +79,9 @@ class TestLectureroomNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 403, (
             f"Body status_code 불일치: {data}"
         )
@@ -96,6 +109,9 @@ class TestLectureroomNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {data}"
         )
@@ -123,6 +139,9 @@ class TestLectureroomNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {data}"
         )
@@ -145,7 +164,7 @@ class TestLectureroomBoundary:
                    (TA 이상만 교육자 역할 가능)
         """
         # Given: 학습자 토큰과 교육자 역할(role=10)이 있을 때
-        data = {
+        form_data = {
             "lectureroom_id": VALID_LECTUREROOM_ID,
             "role": 10,
         }
@@ -153,7 +172,7 @@ class TestLectureroomBoundary:
         # When: 교육자 역할로 강의실 입장 API 호출
         response = learner_rest_client.post_form(
             f"/org/{ORG}/course/lectureroom/join/",
-            data=data,
+            data=form_data,
         )
 
         # Then: 권한 에러가 반환되어야 한다
@@ -161,6 +180,9 @@ class TestLectureroomBoundary:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 409, (
             f"Body status_code 불일치: {data}"
         )

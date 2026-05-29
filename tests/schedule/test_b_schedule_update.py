@@ -39,6 +39,10 @@ class TestScheduleUpdatePositive:
         assert response.status_code == 200, (
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert data == {}, (
+            f"응답 Body가 빈 객체가 아님: {data}"
+        )
 
 
 # ===================================================
@@ -72,18 +76,25 @@ class TestScheduleUpdateNegative:
         assert data.get("code") == "elice_calendar_unexpected_result", (
             f"에러 코드 불일치: {data}"
         )
+        assert data.get("detail", {}).get("resp_json", {}).get("code") == "model_not_found", (
+            f"model_not_found 에러 미확인: {data}"
+        )
 
     def test_schedule_update_without_token(self, educator_client, educator_schedule_id):
         """
-        [요청 조건] 토큰 없이 수정 요청
+        [요청 조건] 토큰 없이 수정 요청 (PATCH)
         [예상 결과] 401 Unauthorized 또는 403 Forbidden, 인증 에러 반환
         [실제 결과] 403 Forbidden, no_access_token
         """
         # Given: 토큰이 없는 상태일 때
+        body = {
+            "classroom_id": EDUCATOR_CLASSROOM_ID,
+        }
 
-        # When: 토큰 없이 스케줄 수정 API 호출
-        response = educator_client.get_no_token(
+        # When: 토큰 없이 스케줄 수정 PATCH API 호출
+        response = educator_client.patch_no_token(
             f"/schedule/{educator_schedule_id}",
+            data=body,
         )
 
         # Then: 인증 에러가 반환되어야 한다
@@ -116,6 +127,11 @@ class TestScheduleUpdateNegative:
         assert response.status_code == 422, (
             f"예상: 422, 실제: {response.status_code}\n{response.text}"
         )
+        data = response.json()
+        assert any(
+            err.get("loc", [])[-1] == "classroom_id"
+            for err in data.get("detail", [])
+        ), f"classroom_id 누락 에러 미확인: {data}"
 
     def test_schedule_update_invalid_datetime(self, educator_client, educator_schedule_id):
         """
@@ -143,6 +159,9 @@ class TestScheduleUpdateNegative:
         data = response.json()
         assert data.get("code") == "elice_calendar_unexpected_result", (
             f"에러 코드 불일치: {data}"
+        )
+        assert data.get("detail", {}).get("resp_json", {}).get("code") == "invalid_datetime_format", (
+            f"invalid_datetime_format 에러 미확인: {data}"
         )
 
 

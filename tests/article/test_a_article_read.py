@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 import pytest
+import os
+from dotenv import load_dotenv
 # pytest tests/article/test_a_article_read.py -v
 
+load_dotenv()
+
 # ===== 환경 설정 =====
-VALID_ARTICLE_ID = 75044    # [코치]이상엽 작성 게시글
-ORG = "qatrack"
+VALID_ARTICLE_ID = int(os.getenv("VALID_ARTICLE_ID", "75044"))  # [코치]이상엽 작성 게시글
+ORG = os.getenv("ORG", "qatrack")
 
 
 # ===================================================
@@ -36,8 +40,15 @@ class TestArticleReadPositive:
         assert data.get("_result", {}).get("status") == "ok", (
             f"응답 status 불일치: {data}"
         )
-        assert data.get("board_article", {}).get("id") == VALID_ARTICLE_ID, (
+        article = data.get("board_article", {})
+        assert article.get("id") == VALID_ARTICLE_ID, (
             f"게시글 ID 불일치: {data}"
+        )
+        assert article.get("title") is not None, (
+            f"title 필드 없음: {data}"
+        )
+        assert article.get("content") is not None, (
+            f"content 필드 없음: {data}"
         )
 
 
@@ -51,7 +62,7 @@ class TestArticleReadNegative:
         """
         [요청 조건] 토큰 없이 GET 요청
         [예상 결과] 401 Unauthorized, 인증 에러 반환
-        [실제 결과] 403 Forbidden (신원은 확인됐지만 접근 거부)
+        [실제 결과] HTTP 200 / Body status_code: 403, not_found_sessionkey
         """
         # Given: 토큰이 없는 상태일 때
         params = {"board_article_id": VALID_ARTICLE_ID}
@@ -68,6 +79,9 @@ class TestArticleReadNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 403, (
             f"Body status_code 불일치: {data}"
         )
@@ -93,6 +107,9 @@ class TestArticleReadNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {data}"
         )
@@ -107,7 +124,7 @@ class TestArticleReadNegative:
         """
         [요청 조건] board_article_id에 문자열(abc) 전달
         [예상 결과] 400 Bad Request, 타입 에러 반환
-        [실제 결과] HTTP 200 / Body status_code: 400, invalid_parameter (board_article_id required)
+        [실제 결과] HTTP 200 / Body status_code: 400, invalid_parameter
         """
         # Given: board_article_id에 잘못된 타입(문자열)이 있을 때
         params = {"board_article_id": "abc"}
@@ -123,6 +140,9 @@ class TestArticleReadNegative:
             f"예상: 200, 실제: {response.status_code}\n{response.text}"
         )
         data = response.json()
+        assert data.get("_result", {}).get("status") == "fail", (
+            f"응답 status 불일치: {data}"
+        )
         assert data.get("_result", {}).get("status_code") == 400, (
             f"Body status_code 불일치: {data}"
         )

@@ -60,3 +60,9 @@ class APIClient:
             "x-elice-org-name-short": os.getenv("ORG", "qatrack"),
         }
         return requests.get(url, headers=headers, params=params, timeout=10)
+    
+    def patch_no_token(self, endpoint: str, data: dict = None) -> requests.Response:
+        """토큰 없이 PATCH 요청 (Negative 테스트용)"""
+        url = f"{self.base_url}{endpoint}"
+        headers = {"x-elice-org-name-short": os.getenv("ORG", "qatrack")}
+        return requests.patch(url, headers=headers, json=data, timeout=10)
