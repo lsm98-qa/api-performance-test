@@ -1,3 +1,7 @@
 pytest
 requests
 python-dotenv
+pandas
+openpyxl
+matplotlib
+lxml
