@@ -4,13 +4,9 @@ from urllib.parse import urlencode
 
 
 class TestScheduleList:
-
-    # ✅ Positive - 정상 토큰으로 수업 일정 조회
-    def test_schedule_list_positive(self, learner_client, classroom_id):
-        # Given: 학습자 토큰과 유효한 classroom_id가 있을 때
-
-        # When: 수업 일정 조회 API 호출
-        query = urlencode(
+    # 수업 일정 조회에 사용하는 공통 query string을 생성한다.
+    def _schedule_query(self, classroom_id):
+        return urlencode(
             {
                 "classroom_id": classroom_id,
                 "dt_start_ge": "2026-05-01T00:00:00+09:00",
@@ -18,6 +14,13 @@ class TestScheduleList:
                 "count": 20,
             }
         )
+
+    # ✅ Positive - 정상 토큰으로 수업 일정 조회
+    def test_schedule_list_positive(self, learner_client, classroom_id):
+        # Given: 학습자 토큰과 유효한 classroom_id가 있을 때
+        query = self._schedule_query(classroom_id)
+
+        # When: 수업 일정 조회 API 호출
         response = learner_client.get(f"/schedule?{query}")
 
         # Then: 200 OK와 일정 목록 데이터가 반환되어야 한다
@@ -32,16 +35,9 @@ class TestScheduleList:
         # Given: 정상 토큰에서 마지막 1글자를 제거한 잘못된 토큰이 있을 때
         valid_token = learner_client.token
         invalid_token = valid_token[:-1]
+        query = self._schedule_query(classroom_id)
 
         # When: 잘못된 토큰으로 수업 일정 조회 API 호출
-        query = urlencode(
-            {
-                "classroom_id": classroom_id,
-                "dt_start_ge": "2026-05-01T00:00:00+09:00",
-                "dt_start_le": "2026-05-31T23:59:59+09:00",
-                "count": 20,
-            }
-        )
         response = requests.get(
             f"{learner_client.base_url}/schedule?{query}",
             headers={"Authorization": f"Bearer {invalid_token}"},
