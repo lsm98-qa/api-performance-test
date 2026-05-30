@@ -1,92 +1,89 @@
 # 엘리스 LXP QA 프로젝트
 
-## 📌 프로젝트 개요
-엘리스 LXP 서비스의 **학습자/교육자 관점 API 기능 테스트 자동화** 프로젝트입니다.
+엘리스 LXP 서비스의 학습자/교육자 관련 API 기능을 검증하는 QA 프로젝트입니다.
 
-- **Part 1**: API 기능 테스트 자동화 (pytest)
-- **Part 2**: 부하 테스트 로그 분석 (JMeter)
+- Part 1: `pytest` 기반 API 기능 테스트 자동화
+- Part 2: `JMeter` 기반 부하 테스트 및 결과 분석
 
----
+## 프로젝트 구조
 
-## 📁 프로젝트 구조
-
+```text
+api-performance-test/
+├─ conftest.py
+├─ pytest.ini
+├─ requirements.txt
+├─ README.md
+├─ utils/
+│  ├─ __init__.py
+│  └─ api_client.py
+├─ tests/
+│  ├─ __init__.py
+│  ├─ article/
+│  ├─ classhome/
+│  ├─ classroom_course/
+│  ├─ classroom_course_educator/
+│  ├─ schedule/
+│  └─ student/
+└─ load_test/
+   ├─ processed/
+   ├─ raw_data/
+   └─ scripts/
 ```
-qa_project/
-├── conftest.py               # 공통 fixture (토큰, 클라이언트 설정)
-├── .env                      # 환경변수 (토큰, URL 등) - GitLab 업로드 금지
-├── .env.example              # 환경변수 예시
-├── requirements.txt          # 패키지 목록
-├── utils/
-│   ├── __init__.py
-│   └── api_client.py         # API Request Wrapper
-└── tests/
-    ├── __init__.py
-    ├── test_classroom.py     # 클래스 홈 테스트
-    ├── test_course.py        # 학습 과목 테스트
-    ├── test_schedule.py      # 수업 일정 테스트
-    └── test_board.py         # 게시판 테스트
-```
 
----
-
-## ⚙️ 환경 설정
+## 실행 환경
 
 ### 1. 패키지 설치
+
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 환경변수 설정
-```bash
-cp .env.example .env
+### 2. 환경 변수 설정
 
-LEARNER_TOKEN=여기에_학습자_토큰_입력
-EDUCATOR_TOKEN=여기에_교육자_토큰_입력
-CLASSROOM_ID=여기에_클래스_ID_입력
+`.env` 파일에 아래 값을 설정합니다.
+
+```env
+LEARNER_TOKEN=your_learner_token
+EDUCATOR_TOKEN=your_educator_token
+BASE_URL_CLASSROOM=your_classroom_base_url
+BASE_URL_REST=your_rest_base_url
+CLASSROOM_ID=your_classroom_id
+ACCOUNT_ID=your_account_id
+EDUCATOR_CLASSROOM_ID=your_educator_classroom_id
 ```
 
-### 3. 토큰 발급 방법
-```
-1. qatrack.elice.io 접속 후 로그인
-2. F12 → Application → Cookies
-3. eliceSessionKey 값 복사 → LEARNER_TOKEN에 입력
-```
+## 테스트 실행
 
----
-
-## 🧪 테스트 실행
+### 전체 테스트 실행
 
 ```bash
-# 전체 테스트 실행
 pytest
-
-# 특정 파일만 실행
-pytest tests/test_classroom.py
-
-# 결과 상세 출력
-pytest -v
 ```
 
----
+### 특정 도메인 테스트 실행
 
-## 🛡️ Safety Design
+```bash
+pytest tests/article
+pytest tests/schedule
+```
 
-### 동시성 통제
-- 테스트는 순차 실행 (병렬 실행 옵션 비활성화)
+### 여러 폴더 한 번에 실행
 
-### 호출 빈도 상한
-- 단위 시간당 요청 수 제한 (운영 서버 부하 방지)
+```bash
+pytest tests/article tests/schedule
+```
 
-### 재시도 정책
-- 5xx 응답 시 즉시 재호출 금지
+## 디렉터리 역할
 
-### 실행 시점
-- 운영 트래픽 피크 시간대 외 실행 권장
+- `tests/`: 기능 도메인별 API 테스트 코드
+- `utils/api_client.py`: 공통 API 호출 래퍼
+- `conftest.py`: 공통 fixture, 토큰/URL 설정, 테스트용 데이터 준비
+- `load_test/scripts/`: 부하 테스트 결과 전처리 및 시각화 스크립트
+- `load_test/raw_data/`: 원본 부하 테스트 결과
+- `load_test/processed/`: 후처리된 CSV 및 그래프 결과물
 
----
+## 주의 사항
 
-## ⚠️ 주의사항
-
-- `.env` 파일은 절대 GitLab에 올리지 마세요
-- Production 환경에 부하 테스트 직접 실행 금지
-- 테스트 중 500 에러 발생 시 즉시 중단
+- `.env` 파일과 실제 토큰 값은 저장소에 커밋하지 않습니다.
+- 운영 환경에 직접 부하 테스트를 실행하지 않습니다.
+- 테스트 데이터 생성/수정이 포함된 경우 실행 대상 환경을 반드시 확인합니다.
