@@ -2,7 +2,7 @@ import pytest
 
 
 class TestArticleList:
-    # 게시판 목록 조회용 공통 경로(skip/count 포함)를 생성한다.
+    # 게시판 목록 조회용 공통 경로(skip/count 포함)를 생성한다1.
     def _article_list_endpoint(self, classroom_id):
         return f"/classroom/{classroom_id}/article?skip=0&count=20"
 
