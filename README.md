@@ -104,8 +104,34 @@ python load_test/scripts/tsp_error_rate.py
 - GitHub Actions 기반 CI 자동화
 - 기능 테스트와 성능 분석 흐름 분리
 
-## 주의사항
+## 실행 관련 안내
 
-- `.env` 파일은 저장소에 포함하지 않음
-- 운영 환경 대상 부하 테스트는 신중하게 수행
-- 토큰, 리소스 ID, 권한 설정에 따라 테스트 결과가 달라질 수 있음
+본 프로젝트는 엘리스 LXP 서비스의 실제 API를 대상으로 작성된 QA 자동화 및 성능 분석 프로젝트입니다.
+
+테스트 실행에는 다음과 같은 환경변수가 필요합니다.
+
+- LEARNER_TOKEN
+- EDUCATOR_TOKEN
+- EXPIRED_TOKEN
+- BASE_URL_CLASSROOM
+- BASE_URL_REST
+- CLASSROOM_ID
+- CLASSROOM_ID_V2
+- COURSE_ID
+- COURSE_ID_V2
+- ORIGINAL_COURSE_ID
+- LECTURE_ID
+- BOARD_ARTICLE_ID
+- BOARD_ARTICLE_ID_NO_TOKEN
+- BOARD_ARTICLE_ID_BOUNDARY
+
+해당 값들은 부트캠프 실습 환경에서 제공된 계정, 권한, 리소스에 의존합니다.  
+따라서 외부 사용자가 저장소를 clone하더라도 별도 권한과 유효한 테스트 리소스 없이는 API 테스트를 직접 실행할 수 없습니다.
+
+본 저장소는 다음 내용을 중심으로 검토할 수 있도록 구성했습니다.
+
+- pytest 기반 API 테스트 구조
+- Positive / Negative / Boundary 테스트 설계
+- 공통 API Client 및 fixture 구성
+- GitHub Actions 기반 CI 파이프라인 구성
+- JMeter 부하 테스트 결과 전처리 및 시각화 코
